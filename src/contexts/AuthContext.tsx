@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // @ts-ignore - password is intentionally unused in mock implementation
     try {
       // Ganti dengan panggilan API sebenarnya
       // const response = await fetch('/api/auth/login', {

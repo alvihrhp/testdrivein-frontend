@@ -3,14 +3,13 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Skeleton } from '../../components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Search, MapPin, Calendar, Filter, X } from 'lucide-react';
 import { CarCard } from '@/components/car/CarCard';
 import { CarCardSkeleton } from '@/components/car/CarCardSkeleton';
 import { HeroSkeleton } from '@/components/HeroSkeleton';
 import { useCars } from '@/hooks/useCars';
-
-import { Car } from '@/lib/api';
+import type { Car } from '@/types/car';
 
 // Fallback data in case API is not available
 const fallbackCars: Car[] = [
@@ -32,7 +31,8 @@ const fallbackCars: Car[] = [
     sales: {
       id: '1',
       name: 'Sales 1',
-      email: 'sales1@example.com'
+      email: 'sales1@example.com',
+      phone: '081234567890'
     },
     bookings: [],
     createdAt: new Date().toISOString(),
@@ -40,23 +40,24 @@ const fallbackCars: Car[] = [
   },
   {
     id: '2',
-    slug: 'honda-hrv-turbo',
-    name: 'Honda HR-V Turbo',
+    slug: 'honda-br-v',
+    name: 'Honda BR-V',
     brand: 'Honda',
     image: '/placeholder-car.jpg',
-    description: 'SUV premium dengan mesin turbo bertenaga',
-    price: 499000000,
-    showroom: 'Jakarta Pusat',
+    description: 'SUV 7-seater dengan performa tangguh dan nyaman',
+    price: 350000000,
+    showroom: 'Jakarta Utara',
     jenis_mobil: 'SUV',
     engine_type: 'Bensin',
     year: 2023,
     engine_capacity: 1500,
-    capacity: 5,
+    capacity: 7,
     salesId: '2',
     sales: {
       id: '2',
       name: 'Sales 2',
-      email: 'sales2@example.com'
+      email: 'sales2@example.com',
+      phone: '081234567891'
     },
     bookings: [],
     createdAt: new Date().toISOString(),
@@ -64,23 +65,24 @@ const fallbackCars: Car[] = [
   },
   {
     id: '3',
-    slug: 'mitsubishi-xpander-ultimate',
-    name: 'Mitsubishi Xpander Ultimate',
-    brand: 'Mitsubishi',
+    slug: 'toyota-raize',
+    name: 'Toyota Raize',
+    brand: 'Toyota',
     image: '/placeholder-car.jpg',
-    description: 'MPV tangguh dengan fitur premium dan ruang kabin luas',
-    price: 289000000,
-    showroom: 'Tangerang',
-    jenis_mobil: 'MPV',
+    description: 'Compact SUV dengan desain modern dan irit bahan bakar',
+    price: 280000000,
+    showroom: 'Jakarta Barat',
+    jenis_mobil: 'SUV',
     engine_type: 'Bensin',
     year: 2023,
-    engine_capacity: 1500,
-    capacity: 7,
-    salesId: '1',
+    engine_capacity: 1200,
+    capacity: 5,
+    salesId: '3',
     sales: {
-      id: '1',
-      name: 'Sales 1',
-      email: 'sales1@example.com'
+      id: '3',
+      name: 'Sales 3',
+      email: 'sales3@example.com',
+      phone: '081234567892'
     },
     bookings: [],
     createdAt: new Date().toISOString(),
@@ -97,15 +99,15 @@ function formatPrice(price: number): string {
 }
 
 export default function Home() {
-  const { cars, loading, error } = useCars();
-  const [searchQuery, setSearchQuery] = useState('');
-  
+const { cars = [], loading: isLoading, error } = useCars();
+const [searchQuery, setSearchQuery] = useState('');
+
   // Filter cars based on search query
   const filteredCars = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return cars.length > 0 ? cars : fallbackCars;
-    
-    return (cars.length > 0 ? cars : fallbackCars).filter(car => {
+
+    return (cars.length > 0 ? cars : fallbackCars).filter((car: Car) => {
       return (
         car.brand.toLowerCase().includes(query) ||
         car.engine_type.toLowerCase().includes(query) ||
@@ -121,9 +123,9 @@ export default function Home() {
   };
   
   // Show skeleton while loading initial data
-  const isLoading = loading && cars.length === 0;
+  const isInitialLoading = isLoading && cars.length === 0;
   
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-white">
         <HeroSkeleton />
@@ -166,57 +168,30 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-
       {/* Hero Section */}
       <div className="relative text-white py-16 min-h-[500px] flex items-center">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 z-0 bg-blue-100"
-          style={{
-            backgroundImage: 'url(/hero.jpg)',
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundBlendMode: "multiply"
-          }}
-        >
-          {/* Light overlay */}
-          <div className="absolute inset-0 bg-blue-600 opacity-30"></div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative z-10 w-full">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="absolute inset-0 bg-black/60 z-0"></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Temukan Mobil Impian Anda</h1>
-            <p className="text-xl mb-8 max-w-3xl mx-auto">Nikmati pengalaman test drive terbaik dengan pilihan mobil terbaru dan terbaik</p>
+            <p className="text-xl mb-8">Nikmati pengalaman test drive yang nyaman dan profesional dengan berbagai pilihan mobil terbaik.</p>
             
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="max-w-4xl mx-auto bg-white/90 rounded-xl shadow-xl p-4 sm:p-6 mb-8">
-              <div className="flex flex-col sm:flex-row gap-3 w-full">
-                {/* Search Input */}
-                <div className="w-full">
-                  <Input 
-                    type="text"
-                    leftIcon={
-                      <Search className="h-5 w-5 text-gray-800" />
-                    }
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari berdasarkan merek, tipe mesin, atau jenis mobil..."
-                    className="h-14 w-full bg-white border border-gray-200 text-gray-800 placeholder-gray-400
-                      focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50
-                      hover:border-gray-300 transition-colors duration-200 rounded-lg shadow-sm"
-                  />
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
                 </div>
-                
-                {/* Search Button */}
-                <Button 
-                  type="submit"
-                  className="h-14 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium text-base px-6 md:px-8
-                    transition-all duration-200 hover:shadow-lg rounded-lg whitespace-nowrap flex-shrink-0 cursor-pointer"
-                >
-                  Cari Mobil
-                </Button>
+                <Input
+                  type="text"
+                  placeholder="Cari mobil, merek, atau tipe..."
+                  className="pl-10 w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                Cari Mobil
+              </Button>
             </form>
           </div>
         </div>
@@ -226,32 +201,28 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900">Mobil Tersedia</h2>
-          <Button variant="outline" className="flex items-center">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
-        </div>
-
-        {filteredCars.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Tidak ada mobil yang ditemukan untuk pencarian "{searchQuery}"</p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => setSearchQuery('')}
-            >
-              Tampilkan Semua Mobil
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" className="flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
             </Button>
           </div>
-        ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCars.map((car) => (
-            <CarCard 
-              key={car.id} 
-              car={car} 
-              formatPrice={formatPrice} 
-            />
-          ))}
         </div>
+        
+        {filteredCars.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCars.map((car: Car) => (
+              <CarCard 
+                key={car.id}
+                car={car}
+                formatPrice={formatPrice}
+              />
+            ))} 
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Tidak ada mobil yang ditemukan.</p>
+          </div>
         )}
       </div>
     </div>

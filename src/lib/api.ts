@@ -1,6 +1,8 @@
 import axios from 'axios';
+//@ts-ignore
+import type { Car as CarType, JenisMobil, EngineType, Booking as BookingType } from '@/types/car';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,52 +23,12 @@ export const endpoints = {
   },
 };
 
-// Types
-export type JenisMobil = 'SUV' | 'MPV' | 'Hatchback' | 'Sedan' | 'Coupe' | 'Wagon';
-export type EngineType = 'Bensin' | 'Electric' | 'Hybrid';
+// Re-export types from @/types/car
+export type { JenisMobil, EngineType, Car as CarType, Booking as BookingType } from '@/types/car';
 
-export interface Car {
-  id: string;
-  slug: string;
-  name: string;
-  brand: string;
-  image: string;
-  images?: string[]; // Array of image URLs
-  description: string;
-  price: number;
-  showroom: string;
-  jenis_mobil: JenisMobil;
-  engine_type: EngineType;
-  year: number;
-  engine_capacity?: number;
-  capacity: number;
-  salesId: string;
-  sales: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
-  bookings: any[]; // Anda bisa membuat interface terpisah untuk Booking jika diperlukan
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Booking {
-  id: string;
-  mobilId: string;
-  showroom: string;
-  tanggal: string;
-  jam: string;
-  createdAt: string;
-  mobil: Car;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
-}
+// For backward compatibility
+export type Car = CarType;
+export type Booking = BookingType;
 
 // Auth functions
 export const registerUser = async (userData: {

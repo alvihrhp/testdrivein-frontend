@@ -20,7 +20,7 @@ interface StoreState {
   }) => Promise<void>;
 }
 
-export const useStore = create<StoreState>((set, get) => ({
+export const useStore = create<StoreState>((set) => ({
   cars: [],
   bookings: [],
   isLoading: false,

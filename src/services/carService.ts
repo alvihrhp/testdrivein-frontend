@@ -1,6 +1,9 @@
-import { api as apiClient } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Car, ApiResponse } from '@/types/car';
 
+/**
+ * Service for handling car-related API calls
+ */
 export const carService = {
   /**
    * Get all cars with optional search query
@@ -8,10 +11,11 @@ export const carService = {
    * @returns Promise with array of cars
    */
   getAllCars: async (search?: string): Promise<Car[]> => {
-    const params = search ? { search } : {};
     try {
-      const response = await apiClient.get<ApiResponse<Car[]>>('/mobil', { params });
-      return response.data.data; // Return just the data property which contains the Car[]
+      const response = await api.get<ApiResponse<Car[]>>('/mobil', {
+        params: search ? { search } : {}
+      });
+      return response.data.data;
     } catch (error) {
       console.error('Error fetching cars:', error);
       throw error;
@@ -25,7 +29,7 @@ export const carService = {
    */
   getCarBySlug: async (slug: string): Promise<Car> => {
     try {
-      const response = await apiClient.get<ApiResponse<Car>>(`/mobil/${slug}`);
+      const response = await api.get<ApiResponse<Car>>(`/mobil/${slug}`);
       return response.data.data;
     } catch (error) {
       console.error(`Error fetching car with slug ${slug}:`, error);

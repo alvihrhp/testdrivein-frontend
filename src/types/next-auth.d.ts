@@ -1,4 +1,5 @@
-import NextAuth from 'next-auth';
+// @ts-ignore - NextAuth type augmentation
+// This file is used for type augmentation and doesn't need to import NextAuth
 
 declare module 'next-auth' {
   interface Session {
