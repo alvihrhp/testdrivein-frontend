@@ -102,21 +102,42 @@ export function AuthModal({
         return;
       }
       
-      // Handle registration using signIn with isRegister flag
+      // Handle registration using the registration API
       try {
         setIsLoading(true);
         
-        const result = await signIn('credentials', {
-          name,
-          email,
-          phone,
-          password,
-          isRegister: true,
-          redirect: false,
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            password,
+          }),
         });
         
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Registrasi gagal');
+        }
+        
+        // After successful registration, manually sign in the user
+        const result = await signIn('credentials', {
+          email,
+          password,
+          redirect: false,
+          callbackUrl: '/',
+        });
+        
+        console.log('SignIn result after registration:', result);
+        
         if (result?.error) {
-          throw new Error(result.error || 'Registrasi gagal');
+          console.error('Login after registration failed:', result.error);
+          throw new Error('Gagal masuk setelah registrasi: ' + result.error);
         }
         
         onClose();

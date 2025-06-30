@@ -1,193 +1,225 @@
-import CredentialsProvider from 'next-auth/providers/credentials';
-import type { NextAuthConfig } from 'next-auth';
-import type { DefaultSession, User as NextAuthUser } from 'next-auth/next';
+// Core NextAuth imports
+import NextAuth, { type AuthOptions, type DefaultSession, type User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import Credentials from 'next-auth/providers/credentials';
 
-interface User extends NextAuthUser {
-  id: string;
-  role: 'CLIENT' | 'SALES';
-  accessToken: string;
-}
+// Define role type
+type UserRole = 'CLIENT' | 'SALES';
 
-interface Session extends DefaultSession {
-  user: User;
-}
-
+// Extend the built-in session types
 declare module 'next-auth' {
-  interface Session extends DefaultSession {
+  interface Session {
     user: {
       id: string;
-      role: 'CLIENT' | 'SALES';
-      accessToken: string;
+      role: UserRole;
+      name?: string | null;
+      email?: string | null;
     } & DefaultSession['user'];
+    token: string;
   }
 
   interface User {
     id: string;
-    role: 'CLIENT' | 'SALES';
+    role: UserRole;
     accessToken: string;
+    name: string | null;
+    email: string | null;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id: string;
-    role: 'CLIENT' | 'SALES';
-    accessToken: string;
+    id?: string;
+    role?: UserRole;
+    accessToken?: string;
   }
 }
 
+// Check for required environment variables
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('NEXT_PUBLIC_API_URL is not set. Please set it in your environment variables.');
+}
 if (!process.env.NEXTAUTH_SECRET) {
   console.warn('NEXTAUTH_SECRET is not set. Please set it in your environment variables.');
 }
 
-if (!process.env.NEXT_PUBLIC_API_URL) {
-  console.warn('NEXT_PUBLIC_API_URL is not set. Please set it in your environment variables.');
-}
-
-// This is the auth configuration that can be used in other files
-export const authOptions: NextAuthConfig = {
+// Auth configuration
+export const authOptions: AuthOptions = {
+  // Custom pages
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/login',
+  },
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: 'credentials',
       credentials: {
-        name: { label: "Name", type: "text" },
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        phone: { label: "Phone", type: "text" },
-        isRegister: { label: "Is Register", type: "boolean" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) { 
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email dan password harus diisi');
+      async authorize(credentials) {
+        console.log('Authorize called with credentials:', credentials);
+        if (!credentials) {
+          console.error('No credentials provided');
+          return null;
+        }
+        
+        const { email, password } = credentials as {
+          email?: string;
+          password?: string;
+        };
+
+        if (!email || !password) {
+          console.error('Email or password missing');
+          return null;
         }
 
-        // Handle registration
-        if (credentials.isRegister) {
-          if (!credentials.name || !credentials.phone) {
-            throw new Error('Nama dan nomor telepon harus diisi');
-          }
-
-          try {
-            const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        try {
+          // Handle login
+          console.log('Attempting to log in with:', { email });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+            {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+              },
               body: JSON.stringify({
-                name: credentials.name,
-                email: credentials.email,
-                phone: credentials.phone,
-                password: credentials.password
+                email,
+                password,
               }),
+            }
+          );
+
+          let responseBody = '';
+          try {
+            responseBody = await response.text();
+            console.log('Raw login response:', responseBody);
+            
+            // Try to parse as JSON, but handle non-JSON responses
+            const responseData = responseBody ? JSON.parse(responseBody) : {};
+            
+            console.log('Login response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: responseData,
+              headers: Object.fromEntries(response.headers.entries())
             });
 
-            const registerData = await registerResponse.json();
-
-            if (!registerResponse.ok) {
-              throw new Error(registerData.error || 'Registrasi gagal');
+            if (!response.ok) {
+              const errorMessage = responseData?.message || 
+                                responseData?.error?.message || 
+                                `Authentication failed (${response.status} ${response.statusText})`;
+              console.error('Login failed:', errorMessage);
+              throw new Error(errorMessage);
             }
 
-            // Return the user data to be signed in automatically
+            if (!responseData.success || !responseData.user || !responseData.token) {
+              console.error('Invalid response format from login:', responseData);
+              throw new Error('Invalid response format: missing required fields');
+            }
+            
+            console.log('Login successful for user:', responseData.user.email);
             return {
-              id: registerData.user.id,
-              name: registerData.user.name,
-              email: registerData.user.email,
-              phone: registerData.user.phone || '',
-              role: registerData.user.role || 'CLIENT',
-              accessToken: registerData.access_token,
-            } as any;
-          } catch (error) {
-            console.error('Registration error:', error);
-            throw new Error('Gagal melakukan registrasi');
-          }
-        }
-
-        // Handle login
-        try {
-          console.log('Attempting to authenticate with:', {
-            email: credentials.email,
-            apiUrl: process.env.NEXT_PUBLIC_API_URL
-          });
-          
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password
-            }),
-          });
-          
-          const data = await response.json().catch(() => ({}));
-          
-          console.log('Auth response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data
-          });
-          
-          if (!response.ok) {
-            const errorMessage = data.error || 'Login gagal';
-            console.error('Authentication failed:', errorMessage);
-            throw new Error(errorMessage);
+              id: responseData.user.id,
+              email: responseData.user.email,
+              name: responseData.user.name,
+              role: (responseData.user.role || 'CLIENT') as UserRole,
+              accessToken: responseData.token,
+            };
+            
+          } catch (e) {
+            console.error('Error parsing login response:', {
+              error: e,
+              status: response.status,
+              statusText: response.statusText,
+              responseBody: responseBody || 'No response body',
+              headers: Object.fromEntries(response.headers.entries())
+            });
+            throw new Error(`Invalid server response: ${response.status} ${response.statusText}`);
           }
           
-          // Return user data with token
-          return {
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            role: data.user.role || 'CLIENT',
-            accessToken: data.access_token,
-          };
+          return null;
         } catch (error) {
-          console.error('Auth error details:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
-          });
-          throw error; // Re-throw to see the error in the client
+          console.error('Authentication error:', error);
+          if (error instanceof Error) {
+            throw new Error(error.message);
+          }
+          throw new Error('An unknown error occurred');
         }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
-    jwt: async ({ token, user }: { token: JWT; user?: User }) => {
+    async jwt({ token, user, account }) {
+      console.log('JWT callback:', { token, user, account });
+      
+      // Initial sign in
       if (user) {
         token.id = user.id;
-        token.role = user.role;
-        token.accessToken = user.accessToken;
+        token.role = (user as any).role || 'CLIENT';
+        token.accessToken = (user as any).accessToken;
       }
+      
+      // If we have an access token from the provider
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
+      }
+      
+      console.log('Updated token:', token);
       return token;
     },
-    session: ({ session, token }: { session: Session; token: JWT }) => {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.accessToken = token.accessToken;
+    async session({ session, token, user }) {
+      console.log('Session callback:', { session, token, user });
+      
+      // If we have a token, update the session with token data
+      if (token) {
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as UserRole,
+        };
+        session.token = token.accessToken as string;
       }
+      
+      // If we have a user (from JWT), update the session with user data
+      if (user) {
+        session.user = {
+          ...session.user,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: (user as any).role || 'CLIENT',
+        };
+        session.token = (user as any).accessToken;
+      }
+      
+      console.log('Updated session:', session);
       return session;
     },
   },
-  debug: process.env.NODE_ENV === 'development',
-  pages: {
-    signIn: '/login',
-  },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,
-  cookies: {
-    sessionToken: {
-      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined,
-      },
-    },
-  },
   debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code: string, metadata: any) {
+      console.error('Auth error:', { code, metadata });
+    },
+    warn(code: string) {
+      console.warn('Auth warning:', code);
+    },
+    debug(code: string, metadata: any) {
+      console.log('Auth debug:', { code, metadata });
+    }
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 };
+
+// Initialize NextAuth
+const handler = NextAuth(authOptions);
+
+export const { auth, signIn, signOut } = handler;
+
+export default handler;

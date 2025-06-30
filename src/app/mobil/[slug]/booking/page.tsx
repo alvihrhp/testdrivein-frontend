@@ -633,9 +633,9 @@ export default function BookingPage({ params, searchParams }: PageProps) {
                           day_range_middle: 'bg-blue-100 text-blue-700',
                         }}
                         components={{
-                          IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-                          IconRight: () => <ChevronRight className="h-4 w-4" />
-                        }}
+                          IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" {...props} />,
+                          IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" {...props} />
+                        } as any}
                         locale={id}
                         showOutsideDays
                         fixedWeeks

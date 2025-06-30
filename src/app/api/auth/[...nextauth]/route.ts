@@ -1,9 +1,10 @@
 import NextAuth from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// @ts-ignore - Using require to avoid TypeScript errors with NextAuth
-const NextAuthHandler = require('next-auth').default || require('next-auth');
+const handler = NextAuth(authOptions);
 
-const handler = NextAuthHandler(authOptions);
-
+// Export the handler for both GET and POST methods
 export { handler as GET, handler as POST };
+
+// Ensure the route is dynamic
+export const dynamic = 'force-dynamic';

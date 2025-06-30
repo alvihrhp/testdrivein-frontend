@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { withAuth } from 'next-auth/middleware';
+import { NextResponse } from 'next/server';
 
-// Daftar route yang tidak perlu autentikasi
+// Define public routes that don't require authentication
 const publicRoutes = [
   '/',
   '/mobil',
@@ -9,82 +10,112 @@ const publicRoutes = [
   '/kontak',
   '/register',
   '/tidak-diizinkan',
-  '/api',
+  '/api/auth',
   '/_next',
   '/favicon.ico',
   '/images',
   '/sales/login',
+  '/auth/login',
 ];
 
-// Daftar route yang hanya bisa diakses oleh pengguna yang sudah login
+// Configure which routes are protected and require specific roles
 const protectedRoutes = [
-  '/sales',
-  '/sales/dashboard',
-  '/sales/leads',
-  '/sales/mobil',
-  '/sales/mobil/tambah',
-  '/sales/mobil/[id]',
-  '/sales/mobil/[id]/edit',
+  { path: '/sales', roles: ['SALES'] },
+  { path: '/sales/dashboard', roles: ['SALES'] },
+  { path: '/sales/leads', roles: ['SALES'] },
+  { path: '/sales/mobil', roles: ['SALES'] },
+  { path: '/sales/mobil/tambah', roles: ['SALES'] },
+  { path: '/sales/mobil/[id]', roles: ['SALES'] },
+  { path: '/sales/mobil/[id]/edit', roles: ['SALES'] },
 ];
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isLoggedIn = request.cookies.get('isAuthenticated')?.value === 'true';
-  
-  // Skip middleware untuk route public
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname === route || 
-    pathname.startsWith(route + '/') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.')
-  );
+export default withAuth(
+  function middleware(request) {
+    const { pathname } = request.nextUrl;
+    
+    // Skip middleware for public routes
+    const isPublicRoute = publicRoutes.some(route => 
+      pathname === route || 
+      pathname.startsWith(route.replace(/\[.*?\]/, '')) ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/api/auth') ||
+      pathname.includes('.')
+    );
 
-  // Jika route public, lanjutkan
-  if (isPublicRoute) {
-    // Jika sudah login dan mencoba mengakses halaman login, redirect ke dashboard
-    if (isLoggedIn && pathname.startsWith('/sales/login')) {
-      return NextResponse.redirect(new URL('/sales/dashboard', request.url));
+    // If it's a public route, continue
+    if (isPublicRoute) {
+      return NextResponse.next();
     }
-    return NextResponse.next();
-  }
 
-  // Cek jika route termasuk yang dilindungi
-  const isProtectedRoute = protectedRoutes.some(route => {
-    // Handle dynamic routes seperti /mobil/[id]
-    if (route.includes('[') && route.includes(']')) {
-      const baseRoute = route.split('[')[0];
-      return pathname.startsWith(baseRoute);
+    // Check if the route is protected
+    const protectedRoute = protectedRoutes.find(route => 
+      pathname === route.path || pathname.startsWith(route.path.replace(/\[.*?\]/, ''))
+    );
+
+    if (protectedRoute) {
+      const token = request.cookies.get('next-auth.session-token') || 
+                  request.cookies.get('__Secure-next-auth.session-token');
+      
+      // If no token, redirect to login
+      if (!token) {
+        const url = new URL('/auth/login', request.url);
+        url.searchParams.set('callbackUrl', encodeURI(request.url));
+        return NextResponse.redirect(url);
+      }
     }
-    return pathname === route || pathname.startsWith(route + '/');
-  });
 
-  // Jika route tidak dilindungi, lanjutkan
-  if (!isProtectedRoute) {
     return NextResponse.next();
-  }
+  },
+  {
+    callbacks: {
+      authorized: ({ req, token }) => {
+        const { pathname } = new URL(req.url);
+        
+        // Public routes are handled in the middleware function
+        if (publicRoutes.some(route => 
+          pathname === route || 
+          pathname.startsWith(route.replace(/\[.*?\]/, ''))
+        )) {
+          return true;
+        }
 
-  // Jika sudah login, lanjutkan
-  if (isLoggedIn) {
-    return NextResponse.next();
-  }
+        // Protected routes require a valid token
+        const protectedRoute = protectedRoutes.find(route => 
+          pathname === route.path || pathname.startsWith(route.path.replace(/\[.*?\]/, ''))
+        );
 
-  // Jika belum login, redirect ke halaman login
-  const loginUrl = new URL('/sales/login', request.url);
-  loginUrl.searchParams.set('callbackUrl', pathname);
-  return NextResponse.redirect(loginUrl);
-}
+        if (protectedRoute) {
+          if (!token) return false;
+          // Type assertion for token
+          const userToken = token as { role?: string };
+          // Check if user has required role
+          if (protectedRoute.roles && userToken.role) {
+            return protectedRoute.roles.includes(userToken.role);
+          }
+          return true; // If no specific role required, just check if authenticated
+        }
+
+        // By default, allow access to other routes
+        return true;
+      },
+    },
+    pages: {
+      signIn: '/auth/login',
+      error: '/tidak-diizinkan',
+    },
+  }
+);
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * - api (except api/auth)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - images/ (image files)
+     * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images/).*)',
+    '/((?!api/(?!auth)|_next/static|_next/image|favicon.ico|public/).*)',
   ],
 };
