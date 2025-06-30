@@ -1,17 +1,62 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
+import type { NextAuthConfig } from 'next-auth';
+import type { DefaultSession, User as NextAuthUser } from 'next-auth/next';
+import type { JWT } from 'next-auth/jwt';
+
+interface User extends NextAuthUser {
+  id: string;
+  role: 'CLIENT' | 'SALES';
+  accessToken: string;
+}
+
+interface Session extends DefaultSession {
+  user: User;
+}
+
+declare module 'next-auth' {
+  interface Session extends DefaultSession {
+    user: {
+      id: string;
+      role: 'CLIENT' | 'SALES';
+      accessToken: string;
+    } & DefaultSession['user'];
+  }
+
+  interface User {
+    id: string;
+    role: 'CLIENT' | 'SALES';
+    accessToken: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    role: 'CLIENT' | 'SALES';
+    accessToken: string;
+  }
+}
+
+if (!process.env.NEXTAUTH_SECRET) {
+  console.warn('NEXTAUTH_SECRET is not set. Please set it in your environment variables.');
+}
+
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('NEXT_PUBLIC_API_URL is not set. Please set it in your environment variables.');
+}
 
 // This is the auth configuration that can be used in other files
-export const authOptions = {
+export const authOptions: NextAuthConfig = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'credentials',
       credentials: {
-        name: { label: "Name", type: "text", optional: true },
+        name: { label: "Name", type: "text" },
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        phone: { label: "Phone", type: "text", optional: true },
-        isRegister: { label: "Is Register", type: "boolean", optional: true }
-      } as const,
+        phone: { label: "Phone", type: "text" },
+        isRegister: { label: "Is Register", type: "boolean" }
+      },
       async authorize(credentials) { 
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email dan password harus diisi');
@@ -105,25 +150,24 @@ export const authOptions = {
     })
   ],
   callbacks: {
-    // @ts-ignore - We're using a custom JWT callback
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user }: { token: JWT; user?: User }) => {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.accessToken = (user as any).accessToken;
+        token.accessToken = user.accessToken;
       }
       return token;
     },
-    // @ts-ignore - We're using a custom session callback
-    session: ({ session, token }) => {
+    session: ({ session, token }: { session: Session; token: JWT }) => {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as 'CLIENT' | 'SALES';
-        session.user.accessToken = token.accessToken as string;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.accessToken = token.accessToken;
       }
       return session;
     },
   },
+  debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/login',
   },
@@ -131,5 +175,19 @@ export const authOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key',
-} as const;
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  cookies: {
+    sessionToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined,
+      },
+    },
+  },
+  debug: process.env.NODE_ENV === 'development',
+};
