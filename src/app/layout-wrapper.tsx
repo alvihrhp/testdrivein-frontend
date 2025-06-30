@@ -4,8 +4,11 @@ import { usePathname } from 'next/navigation';
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-// Komponen untuk layout utama (dengan Header)
-function MainLayout({ children }: { children: React.ReactNode }) {
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+export function MainLayout({ children }: MainLayoutProps) {
   return (
     <>
       <Header />
@@ -17,12 +20,15 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Komponen untuk layout sales (tanpa Header)
-function SalesLayout({ children }: { children: React.ReactNode }) {
+interface SalesLayoutProps {
+  children: React.ReactNode;
+}
+
+export function SalesLayout({ children }: SalesLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
       {children}
-    </div>
+    </main>
   );
 }
 

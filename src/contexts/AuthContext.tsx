@@ -2,13 +2,15 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui';
+import { loginUser } from '@/lib/api';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: 'CLIENT' | 'SALES';
+  token: string;
 }
 
 interface AuthContextType {
@@ -16,7 +18,6 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,115 +29,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Cek status login saat komponen dimuat
-    const checkAuth = async () => {
+    // Check if user data exists in localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
       try {
-        // Di sini Anda bisa menambahkan validasi token dengan backend
-        const token = localStorage.getItem('auth_token');
-        
-        if (token) {
-          // Contoh: Ambil data user dari token atau API
-          // const response = await fetch('/api/auth/me', {
-          //   headers: { 'Authorization': `Bearer ${token}` }
-          // });
-          // const userData = await response.json();
-          // setUser(userData);
-          
-          // Untuk sementara, kita set user dummy
-          setUser({
-            id: '1',
-            name: 'Sales 1',
-            email: 'sales@testdrivein.com',
-            role: 'sales'
-          });
-        }
+        setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Gagal memeriksa autentikasi:', error);
-        localStorage.removeItem('auth_token');
-      } finally {
-        setLoading(false);
+        console.error('Failed to parse stored user data:', error);
+        localStorage.removeItem('user');
       }
-    };
-
-    checkAuth();
+    }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    // @ts-ignore - password is intentionally unused in mock implementation
     try {
-      // Ganti dengan panggilan API sebenarnya
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
-      // const data = await response.json();
-      
-      // Simulasi respons API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockUser = {
-        id: '1',
-        name: 'Sales 1',
-        email: email,
-        role: 'sales'
+      const response = await loginUser({ email, password });
+      const userData = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        role: response.user.role,
+        token: response.access_token,
       };
-      
-      const mockToken = 'mock-jwt-token';
-      
-      // Simpan token di localStorage dan state
-      localStorage.setItem('auth_token', mockToken);
-      setUser(mockUser);
-      
-      toast({
-        title: 'Login berhasil',
-        description: 'Anda akan diarahkan ke dashboard',
-      });
-      
-      router.push('/sales/dashboard');
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', response.access_token);
     } catch (error) {
-      console.error('Login gagal:', error);
-      toast({
-        title: 'Login gagal',
-        description: 'Email atau password salah',
-        variant: 'destructive',
-      });
+      console.error('Login error:', error);
       throw error;
     }
   };
 
   const logout = () => {
-    // Hapus token dan reset state
-    localStorage.removeItem('auth_token');
     setUser(null);
-    
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    router.push('/');
     toast({
-      title: 'Logout berhasil',
-      description: 'Anda telah keluar dari sistem',
+      title: 'Logged out',
+      description: 'You have been successfully logged out.',
     });
-    
-    router.push('/sales/login');
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        loading, 
-        login, 
-        logout, 
-        isAuthenticated: !!user 
-      }}
-    >
-      {!loading && children}
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

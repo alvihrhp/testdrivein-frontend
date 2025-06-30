@@ -1,10 +1,5 @@
-import type { NextConfig } from "next";
-
-// !! WARN !!
-// Dangerously allow production builds to successfully complete even if
-// your project has type errors.
-// !! WARN !!
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -15,7 +10,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-  } as any, // Using type assertion to bypass TypeScript error
+  },
   images: {
     remotePatterns: [
       {
@@ -38,4 +33,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig;
+export default nextConfig; 

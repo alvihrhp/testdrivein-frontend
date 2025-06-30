@@ -1,11 +1,11 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-export default function CarDetailLayout({
-  children,
-}: {
+interface CarDetailLayoutProps {
   children: React.ReactNode;
-}) {
+}
+
+export default function CarDetailLayout({ children }: CarDetailLayoutProps) {
   return (
     <>
       <Header />

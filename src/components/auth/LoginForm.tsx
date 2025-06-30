@@ -3,21 +3,21 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import {
+  Button,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/Input';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+  Input,
+  useToast
+} from '@/components/ui';
 
 const formSchema = z.object({
   email: z.string().email('Email tidak valid').min(1, 'Email harus diisi'),
@@ -32,10 +32,9 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, redirectPath = '/sales/dashboard' }: LoginFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
   const form = useForm<LoginFormValues>({
@@ -46,17 +45,18 @@ export function LoginForm({ onSuccess, redirectPath = '/sales/dashboard' }: Logi
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
-      await login(data.email, data.password);
-      
-      // Redirect ke halaman sebelumnya atau ke dashboard
-      const from = searchParams.get('from') || redirectPath;
-      router.push(from);
-      
+      await login(values.email, values.password);
+      toast({
+        title: 'Login berhasil',
+        description: 'Anda akan diarahkan ke dashboard',
+      });
       if (onSuccess) {
         onSuccess();
+      } else {
+        router.push(redirectPath);
       }
     } catch (error) {
       toast({
@@ -76,7 +76,7 @@ export function LoginForm({ onSuccess, redirectPath = '/sales/dashboard' }: Logi
           <FormField
             control={form.control}
             name="email"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
@@ -95,7 +95,7 @@ export function LoginForm({ onSuccess, redirectPath = '/sales/dashboard' }: Logi
           <FormField
             control={form.control}
             name="password"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <div className="flex items-center justify-between">
                   <FormLabel>Password</FormLabel>
@@ -126,18 +126,20 @@ export function LoginForm({ onSuccess, redirectPath = '/sales/dashboard' }: Logi
             )}
           />
         </div>
-        
-        <Button 
-          type="submit" 
-          className="w-full" 
+
+        <Button
+          type="submit"
+          className="w-full"
           disabled={isLoading}
         >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Memproses...
+              Loading...
             </>
-          ) : 'Masuk'}
+          ) : (
+            'Login'
+          )}
         </Button>
       </form>
     </Form>

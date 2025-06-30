@@ -1,5 +1,5 @@
 export type JenisMobil = 'MPV' | 'SUV' | 'Sedan' | 'Hatchback' | 'LCGC' | 'Sport' | 'Lainnya';
-export type EngineType = 'Bensin' | 'Diesel' | 'Hybrid' | 'Listrik';
+export type EngineType = 'Bensin' | 'Diesel' | 'Hybrid' | 'Listrik' | 'Electric';
 
 export interface User {
   id: string;
@@ -25,22 +25,21 @@ export interface Booking {
 
 export interface Car {
   id: string;
-  slug: string;
   name: string;
-  brand: string;
-  image: string;
-  images?: string[];
+  slug: string;
   description: string;
   price: number;
-  showroom: string;
-  jenis_mobil: JenisMobil;
-  engine_type: EngineType;
-  year: number;
-  engine_capacity?: number;
+  image: string;
+  images?: string[];
+  brand: string;
   capacity: number;
+  engine_capacity: number;
+  engine_type: EngineType;
+  jenis_mobil: JenisMobil;
+  year: number;
+  showroom: string;
   salesId: string;
   sales: User;
-  bookings: Booking[];
   createdAt: string;
   updatedAt: string;
 }

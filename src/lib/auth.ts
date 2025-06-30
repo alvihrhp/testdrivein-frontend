@@ -2,7 +2,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 
 // This is the auth configuration that can be used in other files
 export const authOptions = {
-  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       name: 'Credentials',

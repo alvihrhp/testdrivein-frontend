@@ -1,6 +1,25 @@
 import axios from 'axios';
-//@ts-ignore
-import type { Car as CarType, JenisMobil, EngineType, Booking as BookingType } from '@/types/car';
+import type { Car as CarType, Booking as BookingType } from '@/types/car';
+
+interface LoginResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: 'CLIENT' | 'SALES';
+  };
+  access_token: string;
+}
+
+interface RegisterResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: 'CLIENT' | 'SALES';
+  };
+  access_token: string;
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -10,6 +29,17 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add request interceptor to add auth token (client-side only)
+if (typeof window !== 'undefined') {
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+}
 
 // API endpoints
 export const endpoints = {
@@ -24,7 +54,7 @@ export const endpoints = {
 };
 
 // Re-export types from @/types/car
-export type { JenisMobil, EngineType, Car as CarType, Booking as BookingType } from '@/types/car';
+export type { JenisMobil, EngineType } from '@/types/car';
 
 // For backward compatibility
 export type Car = CarType;
@@ -37,37 +67,36 @@ export const registerUser = async (userData: {
   password: string;
   phone: string;
   role: 'CLIENT' | 'SALES';
-}) => {
+}): Promise<RegisterResponse> => {
   const response = await api.post('/auth/register', userData);
   return response.data;
 };
 
 // API functions
-export const getCars = async (): Promise<Car[]> => {
-  const response = await api.get(endpoints.cars.getAll);
+export const getCars = async (): Promise<CarType[]> => {
+  const response = await api.get('/mobil');
   return response.data;
 };
 
-export const getCarBySlug = async (slug: string): Promise<Car> => {
-  const { data } = await api.get<Car>(endpoints.cars.getBySlug(slug));
-  return data;
+export const getCarBySlug = async (slug: string): Promise<CarType> => {
+  const response = await api.get(`/mobil/${slug}`);
+  return response.data;
 };
 
-export const createBooking = async (bookingData: {
-  name: string;
+export const getBookings = async (): Promise<BookingType[]> => {
+  const response = await api.get('/bookings');
+  return response.data;
+};
+
+export const createBooking = async (bookingData: Omit<BookingType, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<BookingType> => {
+  const response = await api.post('/bookings', bookingData);
+  return response.data;
+};
+
+export const loginUser = async (credentials: {
   email: string;
-  phone: string;
-  mobilId: string;
-  mobilName: string;
-  showroom: string;
-  tanggal: string;
-  jam: string;
-}): Promise<Booking> => {
-  const { data } = await api.post<Booking>(endpoints.bookings.create, bookingData);
-  return data;
-};
-
-export const getBookings = async (): Promise<Booking[]> => {
-  const { data } = await api.get<Booking[]>(endpoints.bookings.getAll);
-  return data;
+  password: string;
+}): Promise<LoginResponse> => {
+  const response = await api.post('/auth/login', credentials);
+  return response.data;
 };

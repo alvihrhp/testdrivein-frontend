@@ -3,7 +3,11 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function Template({ children }: { children: React.ReactNode }) {
+interface TemplateProps {
+  children: React.ReactNode;
+}
+
+export default function Template({ children }: TemplateProps) {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
 

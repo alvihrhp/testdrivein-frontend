@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Booking, Car } from '@/lib/api';
+import type { Car, Booking } from '@/types/car';
 
 interface StoreState {
   cars: Car[];
@@ -8,16 +8,7 @@ interface StoreState {
   error: string | null;
   fetchCars: () => Promise<void>;
   fetchBookings: () => Promise<void>;
-  createBooking: (bookingData: {
-    name: string;
-    email: string;
-    phone: string;
-    mobilId: string;
-    mobilName: string;
-    showroom: string;
-    tanggal: string;
-    jam: string;
-  }) => Promise<void>;
+  createBooking: (bookingData: any) => Promise<void>;
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -33,7 +24,6 @@ export const useStore = create<StoreState>((set) => ({
       const cars = await getCars();
       set({ cars, isLoading: false });
     } catch (error) {
-      console.error('Error fetching cars:', error);
       set({ 
         error: 'Failed to fetch cars. Please try again later.',
         isLoading: false 
@@ -48,7 +38,6 @@ export const useStore = create<StoreState>((set) => ({
       const bookings = await getBookings();
       set({ bookings, isLoading: false });
     } catch (error) {
-      console.error('Error fetching bookings:', error);
       set({ 
         error: 'Failed to fetch bookings. Please try again later.',
         isLoading: false 
@@ -66,7 +55,6 @@ export const useStore = create<StoreState>((set) => ({
         isLoading: false,
       }));
     } catch (error) {
-      console.error('Error creating booking:', error);
       set({ 
         error: 'Failed to create booking. Please try again.',
         isLoading: false 

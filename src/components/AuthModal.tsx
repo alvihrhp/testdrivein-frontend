@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X, Mail, Lock, User, Phone, Check, X as XIcon, Eye, EyeOff } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { X, Mail, Lock, User, Phone, Check, X as XIcon, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { signIn } from 'next-auth/react';
-import { useToast } from "@/components/ui/use-toast";
-import { cn } from '@/lib/utils';
+  Button,
+  Input,
+  useToast
+} from '@/components/ui';
 
 type AuthMode = 'login' | 'register';
 
@@ -189,7 +189,7 @@ export function AuthModal({
 
   const content = (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-blue-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">
             {mode === 'login' ? 'Masuk ke Akun Anda' : 'Buat Akun Baru'}
@@ -383,7 +383,7 @@ export function AuthModal({
             <Button
               type="button"
               variant="outline"
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700"
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
@@ -391,7 +391,7 @@ export function AuthModal({
               Masuk dengan Google
             </Button>
           </div>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm text-black">
             {mode === 'login' ? (
               <>
                 Belum punya akun?{' '}

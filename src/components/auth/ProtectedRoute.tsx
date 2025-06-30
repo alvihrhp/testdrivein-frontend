@@ -11,33 +11,35 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export default function ProtectedRoute({ 
+export function ProtectedRoute({ 
   children, 
-  requiredRole = 'sales',
-  redirectTo = '/sales/login'
+  requiredRole, 
+  redirectTo = '/unauthorized'
 }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      // Redirect ke halaman login dengan menyimpan URL asal
-      router.push(`${redirectTo}?from=${encodeURIComponent(window.location.pathname)}`);
-    } else if (!loading && isAuthenticated && user?.role !== requiredRole) {
-      // Redirect ke halaman tidak diizinkan jika role tidak sesuai
-      router.push('/unauthorized');
+    if (!loading && !user) {
+      router.push('/login');
+      return;
     }
-  }, [isAuthenticated, loading, router, requiredRole, user, redirectTo]);
 
-  if (loading || !isAuthenticated || (user && user.role !== requiredRole)) {
+    if (!loading && requiredRole && user?.role !== requiredRole) {
+      router.push(redirectTo);
+    }
+  }, [loading, user, requiredRole, redirectTo, router]);
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Memeriksa autentikasi...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
+  }
+
+  if (!user || (requiredRole && user.role !== requiredRole)) {
+    return null;
   }
 
   return <>{children}</>;

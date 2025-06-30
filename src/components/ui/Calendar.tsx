@@ -10,6 +10,7 @@ type CalendarProps = {
   components?: {
     IconLeft?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     IconRight?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    Header?: React.ComponentType<{ date: Date; onPrev: () => void; onNext: () => void }>;
   };
   [key: string]: any; // Allow any other props
 };
@@ -26,6 +27,7 @@ function Calendar({
     const result: any = {};
     if (components?.IconLeft) result.IconLeft = components.IconLeft;
     if (components?.IconRight) result.IconRight = components.IconRight;
+    if (components?.Header) result.Header = components.Header;
     return result;
   }, [components]);
 
